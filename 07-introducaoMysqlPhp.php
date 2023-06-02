@@ -12,7 +12,7 @@
 <body>
     <div>
         <?php
-        require "connect.php";
+        require "07-connect.php";
 
         $sql = "INSERT INTO estado (nomeEstado) VALUES ('São Paulo')";
 

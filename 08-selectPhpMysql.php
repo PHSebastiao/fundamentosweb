@@ -14,7 +14,7 @@
     <div class="container">
         <h1>Select estados</h1>
         <?php
-        require "connect.php";
+        require "07-connect.php";
 
         $sql = "SELECT idEstado, nomeEstado FROM estado";
         $result = mysqli_query($conn, $sql);
