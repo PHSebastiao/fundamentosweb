@@ -1,0 +1,227 @@
+<!doctype php>
+<html lang="pt-br" class="h-100">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pessoa CRUD</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0-alpha3/css/bootstrap.min.css" integrity="sha512-iGjGmwIm1UHNaSuwiNFfB3+HpzT/YLJMiYPKzlQEVpT6FWi5rfpbyrBuTPseScOCWBkRtsrRIbrTzJpQ02IaLA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css" integrity="sha512-6S2HWzVFxruDlZxI3sXOZZ4/eJ8AcxkQH1+JjSe/ONCEqR9L4Ysq5JdT5ipqtzU7WHalNwzwBv+iE51gNHJNqQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.3/font/bootstrap-icons.css">
+</head>
+
+<body class="h-100 overflow-x-hidden">
+    <?php require_once "connect.php"; ?>
+    <main class="container pt-3">
+        <div class="row">
+            <div class="col-11">
+                <h1>CRUD Pessoa</h1>
+            </div>
+            <div class="col-1 d-flex align-content-end justify-content-end">
+                <button type="button" class="btn btn-success mt-auto" id="refreshTableBtn">
+                    <span class="spinner-border spinner-border-sm" id="refresh-spinner" role="status" aria-hidden="true"></span>
+                    <i class="bi bi-arrow-counterclockwise"></i></button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-5 insert-edit">
+                <form id="form">
+                    <input type="hidden" name="cpfOriginal" id="cpfOriginal">
+                    <div class=row>
+                        <div class="col-12 mb-3">
+                            <label for="nomePessoa" class="form-label">Nome</label>
+                            <input type="text" name="nomePessoa" id="nomePessoa" class="form-control" placeholder="Nome" required>
+                        </div>
+                        <div class="col-9 mb-3">
+                            <label for="CPF" class="form-label">CPF</label>
+                            <input type="text" name="CPF" id="formCPF" class="form-control" placeholder="CPF" required>
+                        </div>
+                        <div class="col-3 mb-3">
+                            <label for="idadePessoa" class="form-label">Idade</label>
+                            <input type="number" name="idadePessoa" id="idadePessoa" class="form-control" min="0" max="255" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="submitButton">Enviar</button>
+                    <button type="button" class="btn btn-secondary" id="clearForm">Limpar</button>
+                    <a href="./" class="btn btn-link">
+                        << Voltar</a>
+                </form>
+            </div>
+            <div class="col-7">
+                <table id="pessoas-table" class="table table-striped" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>CPF</th>
+                            <th>Nome</th>
+                            <th>Idade</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                    <tfoot>
+                        <!-- If there are no records, display a message -->
+                        <tr>
+                            <td class="text-center" colspan="4">No records found.</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js" integrity="sha512-pumBsjNRGGqkPzKHndZMaAG+bir374sORyzM3uulLV14lN5LyykqNk8eEeUlUkB3U0M4FApyaHraT65ihJhDpQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0-alpha3/js/bootstrap.bundle.min.js" integrity="sha512-vIAkTd3Ary9rwf0lrb9kIipyIkavKpYGnyopBXs6SiLfNSzAvCNvvQvKwBV5Xlag4O8oZpZ5U5n4bHoErGQxjw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js" integrity="sha512-lbwH47l/tPXJYG9AcFNoJaTMhGvYWhVM9YI43CT+uteTRRaiLCui8snIgyAN8XWgNjNhCqlAUdzZptso6OCoFQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="./assets/jquery.mask.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $("#formCPF").mask("000.000.000-00", {
+                reverse: true
+            });
+
+            loadPessoas();
+        });
+
+        $("#clearForm").click(function(e) {
+            e.preventDefault();
+
+            clearForm();
+        });
+
+        $("#refreshTableBtn").click(function(e) {
+            e.preventDefault();
+
+            if ($(this).hasClass("disabled")) return;
+
+            loadPessoas();
+        });
+
+        $("#form").on("submit", function(e) {
+            e.preventDefault();
+
+            let data = {
+                cpf: $("#formCPF").cleanVal(),
+                nomePessoa: $("#nomePessoa").val(),
+                idadePessoa: $("#idadePessoa").val(),
+                cpfOriginal: $("#cpfOriginal").val(),
+            }
+
+            $.ajax({
+                url: "./pessoa/setPessoa.php",
+                method: "POST",
+                data: data,
+                dataType: "json",
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success(response.message, "Sucesso");
+                        loadPessoas();
+                        clearForm();
+                    } else {
+                        toastr.error(data.message, "Erro ao adicionar registro.")
+                    }
+                },
+                error: function(e) {
+                    console.log(e);
+                    toastr.error("Erro ao executar requisição");
+                }
+            })
+        });
+
+        function toggleSpinner(show) {
+            if (show) {
+                $("#refresh-spinner").show();
+                $("#refreshTableBtn").addClass("disabled");
+            } else {
+                $("#refresh-spinner").hide();
+                $("#refreshTableBtn").removeClass("disabled");
+            }
+        }
+
+        async function loadPessoas() {
+            toggleSpinner(true);
+            await new Promise(r => setTimeout(r, 400));
+            $.ajax({
+                url: "./pessoa/getPessoas.php",
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        $('#pessoas-table tbody').empty();
+                        $('#pessoas-table tfoot').show();
+
+                        if (response.data.length !== 0) {
+                            $('#pessoas-table tfoot').hide();
+
+                            $.each(response.data, function(index, pessoa) {
+                                var row = `<tr data-cpf='${pessoa.CPF}' data-nome='${pessoa.nomePessoa}' data-idade='${pessoa.idadePessoa}'>` +
+                                    '<td>' + pessoa.CPF + '</td>' +
+                                    '<td>' + pessoa.nomePessoa + '</td>' +
+                                    '<td>' + pessoa.idadePessoa + '</td>' +
+                                    '<td>' +
+                                    '<a class="btn btn-sm btn-info editBtn me-2"><i class="bi bi-pencil"></i></a>' +
+                                    '<a class="btn btn-sm btn-danger deleteBtn"><i class="bi bi-trash3"></i></a>' +
+                                    '</td>' +
+                                    '</tr>';
+                                $('#pessoas-table tbody').append(row);
+                            });
+
+                            addClickEvent();
+                        }
+                    }
+                }
+            }).done(function() {
+                toggleSpinner();
+            });
+        }
+
+        function clearForm() {
+            $("#cpfOriginal").val("");
+            $("#formCPF").val("");
+            $("#nomePessoa").val("");
+            $("#idadePessoa").val("");
+        }
+
+        function addClickEvent() {
+            $("#pessoas-table .editBtn").on('click', function(e) {
+                e.preventDefault();
+
+                let obj = $(this).parents("tr").data();
+
+                $("#cpfOriginal").val(obj.cpf);
+                $("#formCPF").val(obj.cpf);
+                $("#nomePessoa").val(obj.nome);
+                $("#idadePessoa").val(obj.idade);
+
+                $.applyDataMask("#formCPF");
+            });
+
+            $("#pessoas-table .deleteBtn").on('click', function(e) {
+                e.preventDefault();
+
+                $.ajax({
+                    url: "./pessoa/deletePessoa.php",
+                    method: "POST",
+                    data: {
+                        cpf: $(this).parents("tr").data("cpf")
+                    },
+                    dataType: "json",
+                    success: function(data) {
+                        if (data.success) {
+                            toastr.success("Registro excluído com sucesso", "Sucesso!");
+                            loadPessoas();
+                            $("#cpfOriginal").val("")
+                        } else {
+                            toastr.error(data.message, "Erro ao excluir registro.");
+                        }
+                    },
+                    error: function() {
+                        toastr.error("Erro ao executar requisição");
+                    }
+                })
+            });
+        }
+    </script>
+</body>
+
+</html>
